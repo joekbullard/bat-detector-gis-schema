@@ -1,8 +1,7 @@
 import arcpy
-import arcpy.management
 
 # Set workspace
-arcpy.env.workspace = r"path/to/file.gdb"
+arcpy.env.workspace = r"C:\Users\Joe.Bullard\OneDrive - Avon Wildlife Trust\Documents\ArcGIS\Projects\Bat Detectors 2024\Bat Detectors 2024.gdb"
 
 # Create feature class for detector locations
 arcpy.management.CreateFeatureclass(
@@ -17,8 +16,10 @@ arcpy.management.CreateFeatureclass(
 # Create deployment table
 arcpy.management.CreateTable(arcpy.env.workspace, "deployments")
 
-reserve_domain_values = ["Goblin Combe (AWT)", "King's wood"]
+# Create bat pass table - empty for now
+arcpy.management.CreateTable(arcpy.env.workspace, "bat_passes")
 
+reserve_domain_values = ["Goblin Combe (AWT)", "King's wood"]
 
 serial_domain_values = [
     "SMU01779",
@@ -54,7 +55,7 @@ deployer_domain_values = ["Joe Bullard", "Jen Greenwood"]
 
 # Add fields to the deployment table
 schema_dict = {
-    "location_fields": [
+    "locations": [
         ("location_id", "SHORT", "Location ID"),
         (
             "reserve",
@@ -62,14 +63,13 @@ schema_dict = {
             "Reserve",
             "reserve_domain",
             "Reserve_domain",
-            reserve_domain_values,
         ),
         ("compartment_id", "TEXT", "Compartment ID"),
         ("active", "SHORT", "Active"),
         ("last_deployment", "DATE", "Last deployment"),
         ("description", "TEXT", "Description"),
     ],
-    "deployment_fields": [
+    "deployments": [
         ("location_guid", "GUID", "Location ID"),
         (
             "serial",
@@ -77,7 +77,6 @@ schema_dict = {
             "Serial",
             "serial_domain",
             "Serial Domain",
-            serial_domain_values,
         ),
         (
             "key_number",
@@ -85,7 +84,6 @@ schema_dict = {
             "Key Number",
             "key_domain",
             "Key Domain",
-            key_domain_values,
         ),
         (
             "battery_type",
@@ -93,7 +91,6 @@ schema_dict = {
             "Battery type",
             "battery_domain",
             "Battery Domain",
-            battery_domain_values,
         ),
         (
             "li_ion_cells",
@@ -101,7 +98,6 @@ schema_dict = {
             "Li-ion cells",
             "li_ion_cells_domain",
             "Li-ion Cells Domain",
-            li_ion_cell_domain_values,
         ),
         (
             "card_size",
@@ -109,7 +105,6 @@ schema_dict = {
             "SD Card size",
             "card_size_domain",
             "Card Size Domain",
-            card_size_domain_values,
         ),
         ("start_date", "DATE", "Start Date"),
         ("end_date", "DATE", "End Date"),
@@ -119,10 +114,13 @@ schema_dict = {
             "Deployed by",
             "deployer_domain",
             "Deployer Domain",
-            deployer_domain_values,
         ),
         ("notes", "TEXT", "Notes"),
     ],
+    "bat_passes" : [
+        ("deployment_guid", "GUID", "Deployment ID"),
+        ("timestamp", "DATE", "Timestamp")
+    ]
 }
 
 
@@ -153,7 +151,7 @@ for key, value in schema_dict.items():
 
 
 arcpy.management.AddGlobalIDs("locations")
-
+arcpy.management.AddGlobalIDs("deployments")
 # Enable attachments
 arcpy.management.EnableAttachments("locations")
 
@@ -168,4 +166,16 @@ arcpy.management.CreateRelationshipClass(
     cardinality="ONE_TO_MANY",
     origin_primary_key="GlobalID",
     origin_foreign_key="location_guid",
+)
+
+arcpy.management.CreateRelationshipClass(
+    origin_table="deployments",
+    destination_table="bat_passes",
+    out_relationship_class="deployment_passes",
+    relationship_type="SIMPLE",
+    forward_label="bat passes",
+    backward_label="deployment",
+    cardinality="ONE_TO_MANY",
+    origin_primary_key="GlobalID",
+    origin_foreign_key="deployment_guid",
 )
